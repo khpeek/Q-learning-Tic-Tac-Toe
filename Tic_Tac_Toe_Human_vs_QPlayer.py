@@ -1,9 +1,9 @@
 import numpy as np
-import Tkinter as tk
+import tkinter as tk
 import copy
-import cPickle as pickle    # cPickle is available in Python 2.x only, otherwise use pickle
+import pickle as pickle    # cPickle is available in Python 2.x only, otherwise use pickle
 
-from Q_Learning_Tic_Tac_Toe import Game, Board, Player, HumanPlayer, ComputerPlayer, RandomPlayer, THandPlayer, QPlayer
+from Q_Learning_Tic_Tac_Toe import Game, HumanPlayer, QPlayer
 
 
 Q = pickle.load(open("Q_epsilon_09_Nepisodes_200000.p", "rb"))

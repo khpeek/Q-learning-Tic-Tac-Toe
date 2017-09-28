@@ -1,7 +1,7 @@
 import numpy as np
-import Tkinter as tk
+import tkinter as tk
 import copy
-import cPickle as pickle    # cPickle is for Python 2.x only; in Python 3, simply "import pickle" and the accelerated version will be used automatically if available
+import pickle as pickle    # cPickle is for Python 2.x only; in Python 3, simply "import pickle" and the accelerated version will be used automatically if available
 
 class Game:
     def __init__(self, master, player1, player2, Q_learn=None, Q={}, alpha=0.3, gamma=0.9):
@@ -27,17 +27,22 @@ class Game:
         self.reset_button.grid(row=3)
 
         self.Q_learn = Q_learn
-        self.Q_learn_or_not()
         if self.Q_learn:
             self.Q = Q
             self.alpha = alpha          # Learning rate
             self.gamma = gamma          # Discount rate
             self.share_Q_with_players()
 
-    def Q_learn_or_not(self):       # If either player is a QPlayer, turn on Q-learning
-        if self.Q_learn is None:
-            if isinstance(self.player1, QPlayer) or isinstance(self.player2, QPlayer):
-                self.Q_learn = True
+    @property
+    def Q_learn(self):
+        if self._Q_learn is not None:
+            return self._Q_learn
+        if isinstance(self.player1, QPlayer) or isinstance(self.player2, QPlayer):
+            return True
+
+    @Q_learn.setter
+    def Q_learn(self, _Q_learn):
+        self._Q_learn = _Q_learn
 
     def share_Q_with_players(self):             # The action value table Q is shared with the QPlayers to help them make their move decisions
         if isinstance(self.player1, QPlayer):
@@ -67,12 +72,10 @@ class Game:
 
     def get_move(self, button):
         info = button.grid_info()
-        move = (info["row"], info["column"])                # Get move coordinates from the button's metadata
+        move = (int(info["row"]), int(info["column"]))                # Get move coordinates from the button's metadata
         return move
 
     def handle_move(self, move):
-        # try:
-
         if self.Q_learn:
             self.learn_Q(move)
         i, j = move         # Get row and column number of the corresponding button
@@ -83,18 +86,14 @@ class Game:
         else:
             self.switch_players()
 
-        # except:
-            # print "There was an error handling the move."
-            # pass        # This might occur if no moves are available and the game is already over
-
     def declare_outcome(self):
         if self.board.winner() is None:
-            print "Cat's game."
+            print("Cat's game.")
         else:
-            print "The game is over. The player with mark %s won!" % self.current_player.mark
+            print(("The game is over. The player with mark {mark} won!".format(mark=self.current_player.mark)))
 
     def reset(self):
-        print "Resetting..."
+        print("Resetting...")
         for i in range(3):
             for j in range(3):
                 self.buttons[i][j].configure(text=self.empty_text)
@@ -123,8 +122,6 @@ class Game:
         elif isinstance(self.player1, ComputerPlayer) and isinstance(self.player2, ComputerPlayer):
             while not self.board.over():        # Make the two computer players play against each other without button presses
                 self.play_turn()
-                # move = self.current_player.get_move(self.board)
-                # self.handle_move(move)
 
     def play_turn(self):
         move = self.current_player.get_move(self.board)
@@ -188,7 +185,7 @@ class Board:
         fill_value = 9
         filled_grid = copy.deepcopy(self.grid)
         np.place(filled_grid, np.isnan(filled_grid), fill_value)
-        return "".join(map(str, (map(int, filled_grid.flatten())))) + mark
+        return "".join(map(str, (list(map(int, filled_grid.flatten()))))) + mark
 
     def give_reward(self):                          # Assign a reward for the player with mark X in the current board position.
         if self.over():
@@ -206,15 +203,15 @@ class Board:
 class Player(object):
     def __init__(self, mark):
         self.mark = mark
-        self.get_opponent_mark()
 
-    def get_opponent_mark(self):
+    @property
+    def opponent_mark(self):
         if self.mark == 'X':
-            self.opponent_mark = 'O'
+            return 'O'
         elif self.mark == 'O':
-            self.opponent_mark = 'X'
+            return 'X'
         else:
-            print "The player's mark must be either 'X' or 'O'."
+            print("The player's mark must be either 'X' or 'O'.")
 
 class HumanPlayer(Player):
     pass
@@ -278,9 +275,9 @@ class QPlayer(ComputerPlayer):
 
     @staticmethod
     def stochastic_argminmax(Qs, min_or_max):       # Determines either the argmin or argmax of the array Qs such that if there are 'ties', one is chosen at random
-        min_or_maxQ = min_or_max(Qs.values())
-        if Qs.values().count(min_or_maxQ) > 1:      # If there is more than one move corresponding to the maximum Q-value, choose one at random
-            best_options = [move for move in Qs.keys() if Qs[move] == min_or_maxQ]
+        min_or_maxQ = min_or_max(list(Qs.values()))
+        if list(Qs.values()).count(min_or_maxQ) > 1:      # If there is more than one move corresponding to the maximum Q-value, choose one at random
+            best_options = [move for move in list(Qs.keys()) if Qs[move] == min_or_maxQ]
             move = best_options[np.random.choice(len(best_options))]
         else:
             move = min_or_max(Qs, key=Qs.get)
